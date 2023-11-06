@@ -29,10 +29,18 @@ async function run() {
     const allJobsCollection = client.db("AllJobsDB").collection("jobsCollection");
 
     app.get('/allJobs', async (req, res) => { 
-      const cursor = allJobsCollection.find();
+      console.log(req.query)
+      let query = {} ;
+
+      if(req.query?.email){
+        query = { email : req.query.email}
+      }
+      const cursor = allJobsCollection.find(query);
       const result = await cursor.toArray();
       res.send(result);
   })
+
+  app.get('/individual')
 
   app.get('/jobs/Remote', async(req, res) => {
     const cursor = allJobsCollection.find({'jobCategory' : 'Remote'})
