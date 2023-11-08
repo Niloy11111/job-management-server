@@ -27,9 +27,10 @@ async function run() {
     // await client.connect();
 
     const allJobsCollection = client.db("AllJobsDB").collection("jobsCollection");
+    const appliedJobsCollection = client.db("AllJobsDB").collection("appliedJobsCollection");
 
     app.get('/allJobs', async (req, res) => { 
-      console.log(req.query)
+ 
       let query = {} ;
 
       if(req.query?.email){
@@ -40,7 +41,26 @@ async function run() {
       res.send(result);
   })
 
-  app.get('/individual')
+    app.get('/appliedJobs', async (req, res) => {
+      console.log(req.query)
+      let query = {} ;
+
+      if(req.query?.email){
+        query = { email : req.query.email , jobCategory : req.query.jobCategory}
+      }
+
+      const cursor = appliedJobsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+  })
+
+  app.get('/allAppliedJobs', async(req, res) => {
+    const cursor = appliedJobsCollection.find() ;
+    const result = await cursor.toArray();
+    res.send(result);
+  })
+
+
 
   app.get('/jobs/Remote', async(req, res) => {
     const cursor = allJobsCollection.find({'jobCategory' : 'Remote'})
@@ -71,9 +91,65 @@ async function run() {
     res.send(result);
 })
 
+
+app.delete('/allJobs/:id', async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) }
+  const result = await allJobsCollection.deleteOne(query);
+  res.send(result);
+})
+
+app.put('/allJobs/:id', async (req, res) => {
+  const id = req.params.id;
+  const filter = { _id: new ObjectId(id) }
+  const options = { upsert: true };
+  const updateJob = req.body;
+  console.log(updateJob)
+
+  const job = {
+      $set: {
+        PictureURL : updateJob.PictureURL,
+         jobTitle : updateJob.jobTitle,
+         userName : updateJob.userName,
+         jobCategory : updateJob.jobCategory,
+         salaryRange : updateJob.salaryRange,
+         description : updateJob.description,
+        jobPostingDate : updateJob.jobPostingDate,
+         applicationDeadline : updateJob.applicationDeadline,
+         applicants : parseInt(updateJob.applicants) ,
+         email : updateJob.email
+      }
+  }
+  console.log(job)
+
+  const result = await allJobsCollection.updateOne(filter, job,options);
+  res.send(result);
+})
+
+
     app.post('/addJob', async(req, res) => {
       const newJob = req.body ;
       const result = await allJobsCollection.insertOne(newJob) ;
+      res.send(result)
+    })
+
+    
+
+    app.post('/appliedJob', async(req, res) => {
+      const newAppliedJob = req.body ;
+
+      const jobID = newAppliedJob.jobID ;
+
+      const job = await allJobsCollection.findOne({ _id : new ObjectId(jobID)}) ;
+
+    
+        const currentApplicants = parseFloat(job.applicants) || 0; // Convert to float or default to 0
+        const newApplicants = currentApplicants + 1;
+        await allJobsCollection.updateOne({ _id: new ObjectId(jobID) }, { $set: { applicants: newApplicants.toString() } });
+      
+
+
+      const result = await appliedJobsCollection.insertOne(newAppliedJob) ;
       res.send(result)
     })
 
