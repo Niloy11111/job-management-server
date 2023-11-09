@@ -41,6 +41,20 @@ async function run() {
       res.send(result);
   })
 
+  app.get('/titleBaseJob', async(req, res) => {
+
+    console.log(req.query.jobTitle)
+
+    let query = {} ;
+
+    if(req.query.jobTitle){
+      query = {jobTitle : req.query.jobTitle}
+    }
+    const cursor = allJobsCollection.find(query)
+    const result = await cursor.toArray();
+      res.send(result);
+  })
+
     app.get('/appliedJobs', async (req, res) => {
       console.log(req.query)
       let query = {} ;
@@ -53,6 +67,20 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
   })
+
+    app.get('/appliedJobsEmail', async (req, res) => {
+      console.log(req.query)
+      let query = {} ;
+
+      if(req.query?.email){
+        query = { email : req.query.email }
+      }
+
+      const cursor = appliedJobsCollection.find(query);
+      const result = await cursor.toArray();
+      res.send(result);
+  })
+
 
   app.get('/allAppliedJobs', async(req, res) => {
     const cursor = appliedJobsCollection.find() ;
