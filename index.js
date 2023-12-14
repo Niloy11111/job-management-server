@@ -11,19 +11,20 @@ const port = process.env.PORT || 5000 ;
 // middleware
 app.use(cors({
   origin: [
-      'http://localhost:5173',
-      
+    'https://job-management-58f60.web.app',
+    'https://job-management-58f60.firebaseapp.com'
+    // 'http://localhost:5173'
   ],
-  credentials: true
+  credentials: true,
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  allowedHeaders: '*',
+  optionsSuccessStatus: 204
 }));
+
 
 
 app.use(express.json());
 app.use(cookieParser());
-
-
-app.use(cors()) ;
-app.use(express.json())
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.tg0ohza.mongodb.net/?retryWrites=true&w=majority ` ;
@@ -38,26 +39,26 @@ const client = new MongoClient(uri, {
 });
 
 // middlewares 
-const logger = (req, res, next) =>{
-  console.log('log: info', req.method, req.url);
-  next();
-}
+// const logger = (req, res, next) =>{
+//   console.log('log: info', req.method, req.url);
+//   next();
+// }
 
-const verifyToken = (req, res, next) =>{
-  const token = req?.cookies?.token;
+// const verifyToken = (req, res, next) =>{
+//   const token = req?.cookies?.token;
   
 
-  if(!token){
-      return res.status(401).send({message: 'unauthorized access'})
-  }
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
-      if(err){
-          return res.status(401).send({message: 'unauthorized access'})
-      }
-      req.user = decoded;
-      next();
-  })
-}
+//   if(!token){
+//       return res.status(401).send({message: 'unauthorized access'})
+//   }
+//   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
+//       if(err){
+//           return res.status(401).send({message: 'unauthorized access'})
+//       }
+//       req.user = decoded;
+//       next();
+//   })
+// }
 
 async function run() {
   try {
@@ -67,24 +68,24 @@ async function run() {
     const appliedJobsCollection = client.db("AllJobsDB").collection("appliedJobsCollection");
 
       // auth related api
-      app.post('/jwt', logger, async (req, res) => {
-        const user = req.body;
-        console.log('user for token', user);
-        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+    //   app.post('/jwt', logger, async (req, res) => {
+    //     const user = req.body;
+    //     console.log('user for token', user);
+    //     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
 
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'none'
-        })
-            .send({ success: true });
-    })
+    //     res.cookie('token', token, {
+    //         httpOnly: true,
+    //         secure: true,
+    //         sameSite: 'none'
+    //     })
+    //         .send({ success: true });
+    // })
 
-    app.post('/logout', async (req, res) => {
-      const user = req.body;
-      console.log('logging out', user);
-      res.clearCookie('token', { maxAge: 0 }).send({ success: true })
-  })
+  //   app.post('/logout', async (req, res) => {
+  //     const user = req.body;
+  //     console.log('logging out', user);
+  //     res.clearCookie('token', { maxAge: 0 }).send({ success: true })
+  // })
 
 
     app.get('/allJobs', async (req, res) => { 
@@ -113,7 +114,7 @@ async function run() {
       res.send(result);
   })
 
-    app.get('/appliedJobs',logger, verifyToken, async (req, res) => {
+    app.get('/appliedJobs', async (req, res) => {
       console.log(req.query)
       let query = {} ;
 
@@ -126,7 +127,18 @@ async function run() {
       res.send(result);
   })
 
-    app.get('/appliedJobsEmail',logger, verifyToken, async (req, res) => {
+  app.get('/myEmployees', async(req, res) => {
+    let query = {} ;
+
+      if(req.query?.jobTitle){
+        query = { jobTitle : req.query.jobTitle}
+      }
+    const cursor = appliedJobsCollection.find(query);
+    const result = await cursor.toArray();
+    res.send(result);
+  })
+
+    app.get('/appliedJobsEmail', async (req, res) => {
       console.log(req.query)
       let query = {} ;
 
@@ -140,35 +152,13 @@ async function run() {
   })
 
 
-  app.get('/allAppliedJobs',logger, verifyToken, async(req, res) => {
+  app.get('/allAppliedJobs', async(req, res) => {
     const cursor = appliedJobsCollection.find() ;
     const result = await cursor.toArray();
     res.send(result);
   })
 
 
-
-  app.get('/jobs/Remote', async(req, res) => {
-    const cursor = allJobsCollection.find({'jobCategory' : 'Remote'})
-    const result = await cursor.toArray() ;
-    res.send(result)
-  })
-
-  app.get('/jobs/OnSite', async(req, res) => {
-    const cursor = allJobsCollection.find({'jobCategory' : 'On Site'})
-    const result = await cursor.toArray() ;
-    res.send(result)
-  })
-  app.get('/jobs/Part-Time', async(req, res) => {
-    const cursor = allJobsCollection.find({'jobCategory' : 'Part-Time'})
-    const result = await cursor.toArray() ;
-    res.send(result)
-  })
-  app.get('/jobs/Hybrid', async(req, res) => {
-    const cursor = allJobsCollection.find({'jobCategory' : 'Hybrid'})
-    const result = await cursor.toArray() ;
-    res.send(result)
-  })
 
   app.get('/allJobs/:id', async (req, res) => {
     const id = req.params.id;
@@ -255,7 +245,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-    res.send('current server running')
+    res.send('job management server running')
 })
 
 app.listen(port, () => {
